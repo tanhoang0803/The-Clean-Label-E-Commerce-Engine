@@ -7,7 +7,7 @@
 
 -- Admin user (bcrypt hash of "password123")
 INSERT INTO users (email, password_hash, role)
-VALUES ('admin@cleanlabel.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin')
+VALUES ('admin@cleanlabel.com', '$2a$10$eX2B/CvIjVvK2/hnH/UQ/OoveUI6y9tm224eFI4iMpUyxd9bb89yu', 'admin')
 ON CONFLICT (email) DO NOTHING;
 
 -- Sample products with pre-computed AI audit results
