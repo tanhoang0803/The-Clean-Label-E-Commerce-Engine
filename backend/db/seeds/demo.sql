@@ -28,7 +28,7 @@ VALUES
   'Xylitol Mint Toothpaste',
   'A fluoride-free, SLS-free toothpaste with xylitol and peppermint. No alcohol, no synthetic dyes.',
   12.50,
-  'https://images.unsplash.com/photo-1559590049-ce2f6e40482e?w=400',
+  'https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?w=400',
   'Water, Calcium Carbonate, Xylitol, Glycerin, Peppermint Oil, Carrageenan, Sodium Bicarbonate',
   true,
   'No flagged ingredients. Free from SLS, parabens, alcohol, and synthetic dyes. Xylitol is a clean-label sweetener.',
@@ -54,6 +54,61 @@ VALUES
   'Water, Sodium Lauryl Sulfate, Glycerin, Cocamidopropyl Betaine, Red 40, Methylparaben, Citric Acid, Fragrance',
   false,
   'Flagged: Sodium Lauryl Sulfate (SLS), Red 40 (synthetic dye), and Methylparaben (paraben) detected. Does not meet clean-label standards.',
+  NOW(),
+  (SELECT id FROM users WHERE email = 'admin@cleanlabel.com')
+),
+(
+  'Rosewater Facial Toner',
+  'A gentle, alcohol-free toner with Bulgarian rosewater and hyaluronic acid. Balances pH naturally.',
+  16.00,
+  'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=400',
+  'Rosa Damascena Flower Water, Sodium Hyaluronate, Glycerin, Niacinamide, Potassium Sorbate',
+  true,
+  'All ingredients are clean-label compliant. No alcohol, parabens, SLS, or synthetic dyes detected.',
+  NOW(),
+  (SELECT id FROM users WHERE email = 'admin@cleanlabel.com')
+),
+(
+  'Charcoal Detox Face Mask',
+  'A deep-cleansing mask with activated charcoal and kaolin clay. Draws out impurities without stripping the skin.',
+  22.00,
+  'https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=400',
+  'Kaolin Clay, Activated Charcoal, Bentonite, Aloe Barbadensis Leaf Juice, Glycerin, Lavender Essential Oil',
+  true,
+  'Clean-label compliant. All ingredients are naturally derived. No synthetic preservatives, dyes, or surfactants.',
+  NOW(),
+  (SELECT id FROM users WHERE email = 'admin@cleanlabel.com')
+),
+(
+  'Peppermint Castile Soap',
+  'A versatile liquid soap made with organic olive oil and peppermint essential oil. 100% biodegradable.',
+  13.50,
+  'https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?w=400',
+  'Water, Potassium Cocoate, Potassium Olivate, Glycerin, Mentha Piperita (Peppermint) Oil, Citric Acid',
+  true,
+  'Fully clean-label. Plant-derived surfactants only. No SLS, SLES, parabens, or synthetic dyes.',
+  NOW(),
+  (SELECT id FROM users WHERE email = 'admin@cleanlabel.com')
+),
+(
+  'Kids Bubble Bath',
+  'Extra-gentle bubble bath for sensitive toddler skin with a fun bubblegum scent.',
+  8.99,
+  'https://images.unsplash.com/photo-1571867424488-4565932edb41?w=400',
+  'Water, Sodium Laureth Sulfate, Cocamide DEA, Blue 1, Yellow 5, Fragrance, Methylparaben, Propylparaben',
+  false,
+  'Flagged: Sodium Laureth Sulfate (SLES), Blue 1 and Yellow 5 (synthetic dyes), Methylparaben and Propylparaben (parabens). Not safe for clean-label listing.',
+  NOW(),
+  (SELECT id FROM users WHERE email = 'admin@cleanlabel.com')
+),
+(
+  'Anti-Aging Night Cream',
+  'A rich overnight repair cream with retinol and peptides.',
+  34.99,
+  'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400',
+  'Water, Glycerin, Retinol, Palmitoyl Tripeptide-1, Isopropanol, Butylparaben, Ethylparaben, Phenoxyethanol',
+  false,
+  'Flagged: Isopropanol (alcohol derivative) and Butylparaben + Ethylparaben (parabens) detected. Does not meet clean-label standards.',
   NOW(),
   (SELECT id FROM users WHERE email = 'admin@cleanlabel.com')
 );
