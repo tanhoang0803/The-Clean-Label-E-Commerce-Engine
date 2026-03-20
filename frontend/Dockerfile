@@ -9,6 +9,8 @@ ARG REACT_APP_API_URL
 ARG REACT_APP_STRIPE_PUBLIC_KEY
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 ENV REACT_APP_STRIPE_PUBLIC_KEY=$REACT_APP_STRIPE_PUBLIC_KEY
+# Prevent CRA from treating ESLint warnings as errors in Docker build
+ENV CI=false
 RUN npm run build
 
 # ── Stage 2: serve with nginx ──────────────────────────────────────────────────

@@ -46,7 +46,7 @@ export default function AddProductPage() {
         the ingredients and flag any clean-label violations.
       </p>
 
-      <div style={styles.layout}>
+      <div style={{ ...styles.layout, gridTemplateColumns: auditResult ? '1fr 1fr' : '1fr' }}>
         {/* Form */}
         <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.fieldGroup}>
@@ -219,7 +219,6 @@ const styles = {
   },
   layout: {
     display: 'grid',
-    gridTemplateColumns: auditResult => auditResult ? '1fr 1fr' : '1fr',
     gap: '40px',
   },
   form: {

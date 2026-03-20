@@ -117,19 +117,23 @@ jobs:
     needs: [backend, frontend]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
+    env:
+      BACKEND_HOOK: ${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}
+      FRONTEND_HOOK: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}
+
     steps:
       - name: Trigger Render backend deploy
-        if: ${{ secrets.RENDER_BACKEND_DEPLOY_HOOK != '' }}
         run: |
-          curl -s -X POST "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}" \
-            -o /dev/null -w "Backend deploy triggered: %{http_code}\n"
+          if [ -n "$BACKEND_HOOK" ]; then
+            curl -s -X POST "$BACKEND_HOOK" -o /dev/null -w "Backend deploy triggered: %{http_code}\n"
+          else
+            echo "RENDER_BACKEND_DEPLOY_HOOK not set — skipping backend deploy."
+          fi
 
       - name: Trigger Render frontend deploy
-        if: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK != '' }}
         run: |
-          curl -s -X POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}" \
-            -o /dev/null -w "Frontend deploy triggered: %{http_code}\n"
-
-      - name: Skip deploy (hooks not configured)
-        if: ${{ secrets.RENDER_BACKEND_DEPLOY_HOOK == '' }}
-        run: echo "Render deploy hooks not set — skipping. See README for setup."
+          if [ -n "$FRONTEND_HOOK" ]; then
+            curl -s -X POST "$FRONTEND_HOOK" -o /dev/null -w "Frontend deploy triggered: %{http_code}\n"
+          else
+            echo "RENDER_FRONTEND_DEPLOY_HOOK not set — skipping frontend deploy."
+          fi
