@@ -31,10 +31,13 @@ apiClient.interceptors.response.use(
     // to avoid an infinite redirect loop on the login page.
     const isAuthRoute = requestUrl.includes('/auth/');
 
-    if (status === 401 && !isAuthRoute) {
+    // Only treat 401 as session expiry on auth-protected routes, not on /orders
+    // (Stripe mis-configuration returns 401 from the backend and must not log the user out)
+    const isOrdersRoute = requestUrl.includes('/orders/');
+
+    if (status === 401 && !isAuthRoute && !isOrdersRoute) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      // Redirect to products page — App.js will detect no token and show login prompt
       window.location.href = '/products';
     }
 
