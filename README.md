@@ -29,7 +29,7 @@ This project demonstrates end-to-end integration of:
 | Auth | JWT (`jsonwebtoken` + `bcryptjs`) |
 | Testing | Jest, Supertest |
 | Containers | Docker (multi-stage), Docker Compose, nginx |
-| CI / CD | GitHub Actions → Railway (backend) + Vercel (frontend) |
+| CI / CD | GitHub Actions → Render (backend) + Vercel (frontend) |
 
 ---
 
@@ -317,7 +317,7 @@ push to main
     │
     └── on [1]+[2] pass:
          ├── [3] docker         → docker compose build --no-cache
-         ├── [4] deploy-backend → Railway CLI deploy
+         ├── [4] deploy-backend → Render deploy hook
          └── [5] deploy-frontend→ Vercel CLI deploy
 ```
 
@@ -333,23 +333,32 @@ npm test
 
 ## Deployment
 
-### Backend → Railway
+### Backend → Render
 
-1. Go to [railway.app](https://railway.app) → **New Project → Deploy from GitHub repo**
-2. Select this repo — Railway auto-detects `railway.toml` and uses the backend Dockerfile
-3. Add a **PostgreSQL** plugin inside the project (Railway provisions it automatically)
-4. Set environment variables in Railway dashboard (from `backend/.env.example`):
-   - `DATABASE_URL` — copy from Railway PostgreSQL plugin → Connect tab
+1. Go to [render.com](https://render.com) → **New → Web Service**
+2. Connect this GitHub repo
+3. Set these fields:
+   - **Root Directory**: *(leave blank — uses repo root)*
+   - **Runtime**: Docker
+   - **Dockerfile path**: `./Dockerfile`
+4. Add a **PostgreSQL** database: Render dashboard → **New → PostgreSQL** (free tier)
+5. Set environment variables (from `backend/.env.example`):
+   - `DATABASE_URL` — copy from Render PostgreSQL → **Info → Internal Database URL**
    - `JWT_SECRET`, `OPENAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
    - `FRONTEND_URL` — your Vercel URL (set after step below)
-5. Copy **Settings → Tokens** → create a token and add to GitHub secrets as `RAILWAY_TOKEN`
+   - `PORT` = `5000`
+6. Copy **Settings → Deploy Hook URL** → add to GitHub secrets as `RENDER_BACKEND_DEPLOY_HOOK`
+7. After first deploy, run the migration via Render **Shell** tab:
+   ```bash
+   psql $DATABASE_URL -f db/migrations/001_init.sql
+   ```
 
 ### Frontend → Vercel
 
 1. Go to [vercel.com](https://vercel.com) → **New Project → Import from GitHub**
 2. Set **Root Directory** to `frontend`
 3. Add environment variables in Vercel dashboard:
-   - `REACT_APP_API_URL` → your Railway backend URL + `/api`
+   - `REACT_APP_API_URL` → your Render backend URL + `/api`
    - `REACT_APP_STRIPE_PUBLIC_KEY` → your Stripe publishable key
 4. Add these GitHub secrets for CI auto-deploy:
    - `VERCEL_TOKEN` — from vercel.com → Settings → Tokens
@@ -360,7 +369,7 @@ npm test
 
 | Secret | Purpose |
 |--------|---------|
-| `RAILWAY_TOKEN` | Railway CLI authentication |
+| `RENDER_BACKEND_DEPLOY_HOOK` | Render deploy hook URL for backend |
 | `VERCEL_TOKEN` | Vercel CLI authentication |
 | `VERCEL_ORG_ID` | Vercel organization ID |
 | `VERCEL_PROJECT_ID` | Vercel project ID |
