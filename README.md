@@ -29,7 +29,7 @@ This project demonstrates end-to-end integration of:
 | Auth | JWT (`jsonwebtoken` + `bcryptjs`) |
 | Testing | Jest, Supertest |
 | Containers | Docker (multi-stage), Docker Compose, nginx |
-| CI / CD | GitHub Actions → Render |
+| CI / CD | GitHub Actions → Railway (backend) + Vercel (frontend) |
 
 ---
 
@@ -307,17 +307,18 @@ Order status → 'paid' in PostgreSQL
 
 ## CI / CD Pipeline
 
-Every push to `main` triggers a 4-job GitHub Actions pipeline:
+Every push to `main` triggers a 5-job GitHub Actions pipeline:
 
 ```
 push to main
     │
-    ├── [1] backend  → npm ci → psql migrate → Jest (9 tests, OpenAI mocked)
-    ├── [2] frontend → npm ci → npm run build
+    ├── [1] backend        → npm ci → psql migrate → Jest (9 tests)
+    ├── [2] frontend       → npm ci → npm run build
     │
     └── on [1]+[2] pass:
-         ├── [3] docker → docker compose build --no-cache
-         └── [4] deploy → curl Render deploy hooks (if secrets configured)
+         ├── [3] docker         → docker compose build --no-cache
+         ├── [4] deploy-backend → Railway CLI deploy
+         └── [5] deploy-frontend→ Vercel CLI deploy
 ```
 
 ### Running tests locally
@@ -325,24 +326,46 @@ push to main
 ```bash
 cd backend
 npm test
-
-# 9 tests across 3 suites:
-# health.test.js    → GET /health smoke test
-# aiService.test.js → 5 unit tests (OpenAI fully mocked)
-# auth.test.js      → input validation + JWT guard
+# 9 tests: health.test.js · aiService.test.js · auth.test.js
 ```
 
-### Deploy to Render (free tier)
+---
 
-1. Create a **Web Service** on [render.com](https://render.com) — Docker, port `5000`
-2. Create a **Static Site** — build command: `npm run build`, publish dir: `build`
-3. Create a **PostgreSQL** database — copy the connection string to `DATABASE_URL`
-4. Add all env vars from `.env.example` to each service
-5. Add deploy hook URLs as GitHub secrets:
-   - `RENDER_BACKEND_DEPLOY_HOOK`
-   - `RENDER_FRONTEND_DEPLOY_HOOK`
+## Deployment
 
-Every push to `main` will now auto-deploy.
+### Backend → Railway
+
+1. Go to [railway.app](https://railway.app) → **New Project → Deploy from GitHub repo**
+2. Select this repo — Railway auto-detects `railway.toml` and uses the backend Dockerfile
+3. Add a **PostgreSQL** plugin inside the project (Railway provisions it automatically)
+4. Set environment variables in Railway dashboard (from `backend/.env.example`):
+   - `DATABASE_URL` — copy from Railway PostgreSQL plugin → Connect tab
+   - `JWT_SECRET`, `OPENAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+   - `FRONTEND_URL` — your Vercel URL (set after step below)
+5. Copy **Settings → Tokens** → create a token and add to GitHub secrets as `RAILWAY_TOKEN`
+
+### Frontend → Vercel
+
+1. Go to [vercel.com](https://vercel.com) → **New Project → Import from GitHub**
+2. Set **Root Directory** to `frontend`
+3. Add environment variables in Vercel dashboard:
+   - `REACT_APP_API_URL` → your Railway backend URL + `/api`
+   - `REACT_APP_STRIPE_PUBLIC_KEY` → your Stripe publishable key
+4. Add these GitHub secrets for CI auto-deploy:
+   - `VERCEL_TOKEN` — from vercel.com → Settings → Tokens
+   - `VERCEL_ORG_ID` — from `.vercel/project.json` after first deploy
+   - `VERCEL_PROJECT_ID` — from `.vercel/project.json` after first deploy
+
+### GitHub Secrets summary
+
+| Secret | Purpose |
+|--------|---------|
+| `RAILWAY_TOKEN` | Railway CLI authentication |
+| `VERCEL_TOKEN` | Vercel CLI authentication |
+| `VERCEL_ORG_ID` | Vercel organization ID |
+| `VERCEL_PROJECT_ID` | Vercel project ID |
+
+After secrets are set, every push to `main` automatically tests and deploys both services.
 
 ---
 
