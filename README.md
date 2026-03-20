@@ -27,6 +27,9 @@ This project demonstrates end-to-end integration of:
 | Payments | Stripe Checkout + Webhooks |
 | Auth | JWT (jsonwebtoken + bcryptjs) |
 | Dev tooling | nodemon, react-scripts |
+| Testing | Jest, Supertest |
+| Containers | Docker, Docker Compose, nginx |
+| CI / CD | GitHub Actions → Render |
 
 ---
 
@@ -269,6 +272,42 @@ Order status updated to 'paid' in PostgreSQL
 |---|---|---|---|
 | POST | `/api/orders/checkout` | JWT required | Create Stripe session |
 | POST | `/api/orders/webhook` | Stripe sig | Handle payment confirmation |
+
+---
+
+## CI / CD
+
+Every push to `main` triggers a 4-job GitHub Actions pipeline:
+
+```
+push to main
+    │
+    ├── backend  → npm ci → DB migrate → Jest tests (OpenAI & Stripe mocked)
+    ├── frontend → npm ci → npm run build
+    │
+    └── (on pass) ──► docker → docker compose build --no-cache
+                  └──► deploy → curl Render deploy hooks
+```
+
+### Running tests locally
+
+```bash
+cd backend
+npm install
+npm test
+```
+
+### Deploy to Render (free tier)
+
+1. Create a **Web Service** on [render.com](https://render.com) for the backend (Docker, port 5000)
+2. Create a **Static Site** for the frontend (build command: `npm run build`, publish dir: `build`)
+3. Create a **PostgreSQL** database on Render and copy the connection string to `DATABASE_URL`
+4. Add environment variables to each service from `.env.example`
+5. Copy each service's **Deploy Hook URL** into GitHub → Settings → Secrets:
+   - `RENDER_BACKEND_DEPLOY_HOOK`
+   - `RENDER_FRONTEND_DEPLOY_HOOK`
+
+After that, every push to `main` auto-deploys both services.
 
 ---
 

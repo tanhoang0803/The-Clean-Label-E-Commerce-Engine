@@ -224,6 +224,31 @@ Raw SQL via `pg` is used intentionally. It keeps the query logic explicit and ea
 
 ---
 
+## CI / CD Pipeline
+
+`.github/workflows/ci.yml` runs on every push to `main` or `develop` and every PR to `main`.
+
+| Job | Trigger | What it does |
+|-----|---------|-------------|
+| `backend` | always | `npm ci` → migrate test DB → `npm test` (Jest + Supertest) |
+| `frontend` | always | `npm ci` → `npm run build` (CRA compile check) |
+| `docker` | after backend + frontend pass | `docker compose build --no-cache` |
+| `deploy` | push to `main` only | POSTs to Render deploy hooks (if secrets set) |
+
+### Tests live in `backend/__tests__/`
+- `health.test.js` — `/health` endpoint smoke test
+- `aiService.test.js` — unit tests with mocked OpenAI (5 cases)
+- `auth.test.js` — auth endpoint validation + JWT guard
+
+**Rule:** OpenAI and Stripe are always mocked in tests. Never call real APIs in CI.
+
+### Deploy to Render
+Add two secrets in GitHub → Settings → Secrets → Actions:
+- `RENDER_BACKEND_DEPLOY_HOOK` — from Render backend service → Settings → Deploy Hook
+- `RENDER_FRONTEND_DEPLOY_HOOK` — from Render frontend service → Settings → Deploy Hook
+
+---
+
 ## Common Pitfalls
 
 **Stripe webhook 400 "No signatures found"**

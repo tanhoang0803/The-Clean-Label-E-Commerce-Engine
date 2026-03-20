@@ -42,9 +42,12 @@ app.use((req, res) => {
 // Centralized error handler — must be last
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Clean Label backend running on port ${PORT}`);
-});
+// Only start the HTTP server when run directly (not imported by tests)
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Clean Label backend running on port ${PORT}`);
+  });
+}
 
 module.exports = app;
