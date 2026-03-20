@@ -331,6 +331,16 @@ npm test
 
 ---
 
+## Live URLs
+
+| Service | URL |
+|---------|-----|
+| Frontend | https://the-clean-label-e-commerce-engine.vercel.app |
+| Backend API | https://the-clean-label-e-commerce-engine.onrender.com |
+| Health check | https://the-clean-label-e-commerce-engine.onrender.com/health |
+
+---
+
 ## Deployment
 
 ### Backend → Render
@@ -338,20 +348,30 @@ npm test
 1. Go to [render.com](https://render.com) → **New → Web Service**
 2. Connect this GitHub repo
 3. Set these fields:
-   - **Root Directory**: *(leave blank — uses repo root)*
    - **Runtime**: Docker
-   - **Dockerfile path**: `./Dockerfile`
-4. Add a **PostgreSQL** database: Render dashboard → **New → PostgreSQL** (free tier)
-5. Set environment variables (from `backend/.env.example`):
-   - `DATABASE_URL` — copy from Render PostgreSQL → **Info → Internal Database URL**
-   - `JWT_SECRET`, `OPENAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
-   - `FRONTEND_URL` — your Vercel URL (set after step below)
+   - **Dockerfile path**: `./Dockerfile` (repo root)
+   - **Docker Context**: `.`
+4. Create a **PostgreSQL** database: Render dashboard → **New → PostgreSQL** (free tier)
+   - Note: username cannot be `postgres` — use `clean_label_user` or similar
+5. Set environment variables:
+   - `DATABASE_URL` — Internal Database URL from Render PostgreSQL → Connections
+   - `JWT_SECRET` — any long random string
+   - `OPENAI_API_KEY` — from platform.openai.com
+   - `STRIPE_SECRET_KEY` — from Stripe dashboard → Developers → API keys
+   - `STRIPE_WEBHOOK_SECRET` — from Stripe dashboard → Developers → Webhooks
+   - `FRONTEND_URL` — your Vercel URL
    - `PORT` = `5000`
-6. Copy **Settings → Deploy Hook URL** → add to GitHub secrets as `RENDER_BACKEND_DEPLOY_HOOK`
-7. After first deploy, run the migration via Render **Shell** tab:
+6. After first deploy, run the migration from your local machine using the External Database URL:
    ```bash
-   psql $DATABASE_URL -f db/migrations/001_init.sql
+   psql "YOUR_EXTERNAL_DATABASE_URL" -f backend/db/migrations/001_init.sql
+   psql "YOUR_EXTERNAL_DATABASE_URL" -f backend/db/seeds/demo.sql
    ```
+   > Render Shell tab requires a paid plan. Use local psql with the External Database URL instead.
+7. Set up Stripe webhook endpoint:
+   - URL: `https://your-render-url.onrender.com/api/orders/webhook`
+   - Event: `checkout.session.completed`
+   - Copy the signing secret → update `STRIPE_WEBHOOK_SECRET` on Render
+8. Copy **Settings → Deploy Hook URL** → add to GitHub secrets as `RENDER_BACKEND_DEPLOY_HOOK`
 
 ### Frontend → Vercel
 
@@ -359,11 +379,11 @@ npm test
 2. Set **Root Directory** to `frontend`
 3. Add environment variables in Vercel dashboard:
    - `REACT_APP_API_URL` → your Render backend URL + `/api`
-   - `REACT_APP_STRIPE_PUBLIC_KEY` → your Stripe publishable key
-4. Add these GitHub secrets for CI auto-deploy:
-   - `VERCEL_TOKEN` — from vercel.com → Settings → Tokens
-   - `VERCEL_ORG_ID` — from `.vercel/project.json` after first deploy
-   - `VERCEL_PROJECT_ID` — from `.vercel/project.json` after first deploy
+   - `REACT_APP_STRIPE_PUBLIC_KEY` → your Stripe publishable key (`pk_test_...`)
+4. Deploy, then add these GitHub secrets for CI auto-deploy:
+   - `VERCEL_TOKEN` — from vercel.com → Account Settings → Tokens
+   - `VERCEL_ORG_ID` — from vercel.com → Account Settings → General → Team/Account ID
+   - `VERCEL_PROJECT_ID` — from Vercel project → Settings → General → Project ID
 
 ### GitHub Secrets summary
 
@@ -371,7 +391,7 @@ npm test
 |--------|---------|
 | `RENDER_BACKEND_DEPLOY_HOOK` | Render deploy hook URL for backend |
 | `VERCEL_TOKEN` | Vercel CLI authentication |
-| `VERCEL_ORG_ID` | Vercel organization ID |
+| `VERCEL_ORG_ID` | Vercel organization/account ID |
 | `VERCEL_PROJECT_ID` | Vercel project ID |
 
 After secrets are set, every push to `main` automatically tests and deploys both services.

@@ -237,16 +237,28 @@ Seed file: `backend/db/seeds/demo.sql` — inserts this user + 4 sample products
 
 ---
 
+## Live URLs
+
+| Service | URL |
+|---------|-----|
+| Frontend (Vercel) | https://the-clean-label-e-commerce-engine.vercel.app |
+| Backend (Render) | https://the-clean-label-e-commerce-engine.onrender.com |
+
+---
+
 ## CI / CD Pipeline
 
 `.github/workflows/ci.yml` runs on every push to `main` or `develop` and every PR to `main`.
 
 | Job | Trigger | What it does |
 |-----|---------|-------------|
-| `backend` | always | `npm ci` → migrate test DB → `npm test` (Jest + Supertest) |
-| `frontend` | always | `npm ci` → `npm run build` (CRA compile check) |
+| `backend` | always | `npm install` → migrate test DB → `npm test` (Jest + Supertest) |
+| `frontend` | always | `npm install` → `npm run build` (CRA compile check) |
 | `docker` | after backend + frontend pass | `docker compose build --no-cache` |
-| `deploy` | push to `main` only | POSTs to Render deploy hooks (if secrets set) |
+| `deploy-backend` | push to `main` only | POSTs to Render deploy hook (if secret set) |
+| `deploy-frontend` | push to `main` only | Vercel CLI deploy (if secrets set) |
+
+**Note:** All Dockerfiles use `npm install` (not `npm ci`) to avoid lockfile cross-platform issues between Windows/Node 25 (local) and Linux/Node 20 (CI/Docker).
 
 ### Tests live in `backend/__tests__/`
 - `health.test.js` — `/health` endpoint smoke test
@@ -255,10 +267,19 @@ Seed file: `backend/db/seeds/demo.sql` — inserts this user + 4 sample products
 
 **Rule:** OpenAI and Stripe are always mocked in tests. Never call real APIs in CI.
 
-### Deploy to Render
-Add two secrets in GitHub → Settings → Secrets → Actions:
-- `RENDER_BACKEND_DEPLOY_HOOK` — from Render backend service → Settings → Deploy Hook
-- `RENDER_FRONTEND_DEPLOY_HOOK` — from Render frontend service → Settings → Deploy Hook
+### GitHub Secrets required for auto-deploy
+Add in GitHub → Settings → Secrets and variables → Actions:
+- `RENDER_BACKEND_DEPLOY_HOOK` — from Render service → Settings → Deploy Hook
+- `VERCEL_TOKEN` — from vercel.com → Account Settings → Tokens
+- `VERCEL_ORG_ID` — from vercel.com → Account Settings → General → Team/Account ID
+- `VERCEL_PROJECT_ID` — from Vercel project → Settings → General → Project ID
+
+### Database migration (Render Shell requires paid plan)
+Run from local machine using External Database URL:
+```bash
+psql "EXTERNAL_DATABASE_URL" -f backend/db/migrations/001_init.sql
+psql "EXTERNAL_DATABASE_URL" -f backend/db/seeds/demo.sql
+```
 
 ---
 
