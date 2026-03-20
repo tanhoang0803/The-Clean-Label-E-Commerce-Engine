@@ -127,38 +127,5 @@ jobs:
           fi
 
   # ── 4b. Deploy frontend → Vercel ─────────────────────────────────────────────
-  deploy-frontend:
-    name: Deploy — Vercel (Frontend)
-    runs-on: ubuntu-latest
-    needs: [backend, frontend]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    defaults:
-      run:
-        working-directory: frontend
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel
-
-      - name: Deploy to Vercel
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          if [ -n "$VERCEL_TOKEN" ]; then
-            vercel pull --yes --environment=production --token=$VERCEL_TOKEN
-            vercel build --prod --token=$VERCEL_TOKEN
-            vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
-            echo "Frontend deployed to Vercel."
-          else
-            echo "VERCEL_TOKEN not set — skipping Vercel deploy."
-          fi
+  # Vercel auto-deploys via its GitHub integration on every push to main.
+  # No separate CI step needed — Vercel handles it natively.
