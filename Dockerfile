@@ -5,7 +5,7 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY backend/package.json backend/package-lock.json* ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # ── Stage 2: runtime ───────────────────────────────────────────────────────────
 FROM node:20-alpine AS runtime
