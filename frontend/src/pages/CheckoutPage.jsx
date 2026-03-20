@@ -6,6 +6,7 @@ import { formatPrice, calculateCartTotal } from '../services/productService';
 import apiClient from '../api/apiClient';
 
 // Stripe promise is instantiated once at module level (not inside the component)
+// eslint-disable-next-line no-unused-vars
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY);
 
 export default function CheckoutPage() {
