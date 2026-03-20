@@ -1,8 +1,14 @@
 const OpenAI = require('openai');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy singleton — instantiated on first call so the server starts even
+// if OPENAI_API_KEY is not yet configured (e.g. Render cold start before env vars).
+let openai = null;
+function getClient() {
+  if (!openai) {
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return openai;
+}
 
 const SYSTEM_PROMPT = `You are a clean-label ingredient auditor. Your job is to evaluate a product's ingredient list for safety concerns.
 
@@ -38,7 +44,7 @@ async function analyzeIngredients(ingredientString) {
   }
 
   try {
-    const completion = await openai.chat.completions.create({
+    const completion = await getClient().chat.completions.create({
       model: 'gpt-4',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
