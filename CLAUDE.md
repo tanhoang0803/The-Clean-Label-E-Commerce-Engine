@@ -176,6 +176,19 @@ Raw SQL via `pg` is used intentionally. It keeps the query logic explicit and ea
 | Change the Axios base URL | `frontend/src/api/apiClient.js` |
 | Add a new page | `frontend/src/pages/` + add `<Route>` in `App.js` |
 | Modify DB schema | Add a new migration file, never edit `001_init.sql` |
+| Seed demo data | `backend/db/seeds/demo.sql` |
+
+## Demo Account
+
+Used for local development and testing the admin product submission form.
+
+| Field | Value |
+|-------|-------|
+| Email | `admin@cleanlabel.com` |
+| Password | `password123` |
+| Role | `admin` |
+
+Seed file: `backend/db/seeds/demo.sql` — inserts this user + 4 sample products (3 SAFE, 1 NOT SAFE) with pre-computed AI audit results so no OpenAI key is needed to browse the UI.
 
 ---
 

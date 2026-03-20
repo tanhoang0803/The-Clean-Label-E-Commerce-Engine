@@ -211,6 +211,24 @@ stripe listen --forward-to localhost:5000/api/orders/webhook
 # Copy the printed whsec_... into backend/.env STRIPE_WEBHOOK_SECRET
 ```
 
+### Seed demo data
+
+To populate the database with sample products and a demo admin account:
+
+```bash
+psql -U postgres -d clean_label_db -f backend/db/seeds/demo.sql
+```
+
+**Demo credentials:**
+
+| Field | Value |
+|-------|-------|
+| Email | `admin@cleanlabel.com` |
+| Password | `password123` |
+| Role | `admin` |
+
+The seed inserts 4 products (3 SAFE, 1 NOT SAFE) so you can immediately see the AI audit badges, safe-only filter, and product detail pages without needing an OpenAI key.
+
 ---
 
 ## Architecture Flow
