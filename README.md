@@ -416,3 +416,30 @@ Routes define endpoints → Controllers handle req/res → Services hold busines
 - Redis cache in front of `GET /products` (high read, low write)
 - Move the OpenAI call to a BullMQ background job — POST returns `{ status: "pending" }` immediately
 - Horizontal scaling via Docker Swarm or Kubernetes with the existing Compose config as a base
+
+---
+
+## Future Improvements
+
+### Performance
+- **Redis caching** — Cache `GET /products` responses with a short TTL. Products change infrequently; caching eliminates repeated DB reads under high traffic.
+- **Async AI auditing** — Move the OpenAI call to a BullMQ background job. The `POST /products` endpoint returns immediately with `{ status: "pending" }` and a webhook notifies the vendor when the audit completes.
+- **CDN for product images** — Serve images via Cloudflare or AWS CloudFront instead of third-party URLs to reduce latency and avoid broken image links.
+
+### Features
+- **Re-audit trigger** — Allow admins to re-run the AI audit on existing products when the ingredient list is updated, updating `is_safe`, `ai_reason`, and `ai_checked_at`.
+- **Vendor dashboard** — Give vendors a dedicated view to track their submitted products, audit results, and sales without needing admin access.
+- **Order history page** — Let shoppers view past orders and their payment status directly in the UI.
+- **Product search and filtering** — Add full-text search on product name/ingredients and category filters on the product list page.
+- **Email notifications** — Send transactional emails (order confirmation, audit result) via SendGrid or Resend when key events occur.
+
+### Security & Reliability
+- **Rate limiting** — Add `express-rate-limit` to auth endpoints to prevent brute-force attacks on login.
+- **Refresh tokens** — Replace the single long-lived JWT with short-lived access tokens + refresh tokens stored in `httpOnly` cookies.
+- **Input sanitization** — Add `express-validator` to all POST endpoints to reject malformed or oversized payloads before they reach the service layer.
+- **Audit log table** — Record every AI audit attempt (including failures) in a separate `audit_logs` table for compliance and debugging.
+
+### Infrastructure
+- **Upgrade Render plan** — Eliminate the 15-minute cold start by upgrading from the free tier to a paid instance.
+- **Database backups** — Schedule daily `pg_dump` snapshots to an S3 bucket for disaster recovery.
+- **Observability** — Integrate Sentry for error tracking and add structured logging (Winston or Pino) to replace `console.error` in production.
