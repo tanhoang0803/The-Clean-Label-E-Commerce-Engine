@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { useAuth } from '../hooks/useAuth';
+import { useCart } from '../hooks/useCart';
 import { formatPrice, calculateCartTotal } from '../services/productService';
 import apiClient from '../api/apiClient';
 
@@ -10,12 +11,9 @@ import apiClient from '../api/apiClient';
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY);
 
 export default function CheckoutPage() {
-  const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-
-  // Items can be passed via router state (from ProductDetailPage) or pulled from a cart store
-  const items = location.state?.items || [];
+  const { items, clearCart } = useCart();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -40,7 +38,8 @@ export default function CheckoutPage() {
       const response = await apiClient.post('/orders/checkout', { items });
       const { url } = response.data.data;
 
-      // Redirect to Stripe-hosted checkout page
+      // Clear cart then redirect to Stripe-hosted checkout page
+      clearCart();
       window.location.href = url;
     } catch (err) {
       const message = err.response?.data?.error || 'Checkout failed. Please try again.';

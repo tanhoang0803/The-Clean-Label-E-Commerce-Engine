@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useCart } from '../hooks/useCart';
 
 const styles = {
   nav: {
@@ -74,6 +75,16 @@ const styles = {
     fontSize: '0.85rem',
     marginBottom: '8px',
   },
+  badge: {
+    backgroundColor: '#f59e0b',
+    color: '#fff',
+    borderRadius: '999px',
+    fontSize: '0.7rem',
+    fontWeight: '700',
+    padding: '1px 6px',
+    minWidth: '18px',
+    textAlign: 'center',
+  },
   toggleText: {
     fontSize: '0.8rem',
     color: '#6b7280',
@@ -86,6 +97,7 @@ const styles = {
 
 export default function Navbar() {
   const { user, isAuthenticated, login, logout, register, loading, error, clearAuthError } = useAuth();
+  const { totalItems } = useCart();
   const navigate = useNavigate();
   const [showAuthPanel, setShowAuthPanel] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
@@ -123,11 +135,16 @@ export default function Navbar() {
         <Link to="/products" style={styles.link}>Browse</Link>
 
         {isAuthenticated && (
-          <>
-            <Link to="/products/new" style={styles.link}>Add Product</Link>
-            <Link to="/checkout" style={styles.link}>Checkout</Link>
-          </>
+          <Link to="/products/new" style={styles.link}>Add Product</Link>
         )}
+
+        {/* Cart icon — visible to everyone */}
+        <Link to="/cart" style={{ ...styles.link, position: 'relative', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          🛒
+          {totalItems > 0 && (
+            <span style={styles.badge}>{totalItems}</span>
+          )}
+        </Link>
 
         {isAuthenticated ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

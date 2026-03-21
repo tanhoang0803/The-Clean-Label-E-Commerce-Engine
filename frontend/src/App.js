@@ -7,6 +7,7 @@ import Navbar from './components/Navbar';
 import ProductListPage from './pages/ProductListPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import AddProductPage from './pages/AddProductPage';
+import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 
 /**
@@ -50,6 +51,9 @@ export default function App() {
           {/* Public routes */}
           <Route path="/products" element={<ProductListPage />} />
           <Route path="/products/:id" element={<ProductDetailPage />} />
+
+          {/* Cart — public so users can browse before logging in */}
+          <Route path="/cart" element={<CartPage />} />
 
           {/* Protected routes — requires JWT */}
           <Route

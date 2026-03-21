@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProducts } from '../hooks/useProducts';
 import { useAuth } from '../hooks/useAuth';
+import { useCart } from '../hooks/useCart';
 import IngredientBadge from '../components/IngredientBadge';
 import { formatPrice } from '../services/productService';
 
@@ -10,6 +11,8 @@ export default function ProductDetailPage() {
   const navigate = useNavigate();
   const { selectedProduct, loading, error, loadProductById, clearSelected } = useProducts();
   const { isAuthenticated } = useAuth();
+  const { addToCart } = useCart();
+  const [added, setAdded] = useState(false);
 
   useEffect(() => {
     loadProductById(id);
@@ -102,24 +105,30 @@ export default function ProductDetailPage() {
 
           {/* Add to cart — only shown for safe products when authenticated */}
           {is_safe && (
-            <button
-              style={styles.addToCartBtn}
-              onClick={() => {
-                if (!isAuthenticated) {
-                  alert('Please log in to add items to your cart.');
-                  return;
-                }
-                // In a full implementation, this would dispatch to a cartSlice.
-                // For this scaffold, navigate to checkout with the item.
-                navigate('/checkout', {
-                  state: {
-                    items: [{ product_id: selectedProduct.id, name, price: Number(price), quantity: 1, image_url }],
-                  },
-                });
-              }}
-            >
-              Add to cart
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                style={{ ...styles.addToCartBtn, backgroundColor: added ? '#1a4731' : '#2d6a4f' }}
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    alert('Please log in to add items to your cart.');
+                    return;
+                  }
+                  addToCart({ product_id: selectedProduct.id, name, price: Number(price), quantity: 1, image_url });
+                  setAdded(true);
+                  setTimeout(() => setAdded(false), 2000);
+                }}
+              >
+                {added ? '✓ Added to basket' : 'Add to basket'}
+              </button>
+              {added && (
+                <button
+                  style={styles.viewCartBtn}
+                  onClick={() => navigate('/cart')}
+                >
+                  View basket →
+                </button>
+              )}
+            </div>
           )}
 
           {!is_safe && (
@@ -263,6 +272,16 @@ const styles = {
     fontSize: '1rem',
     fontWeight: '600',
     marginTop: '8px',
+  },
+  viewCartBtn: {
+    padding: '10px 24px',
+    backgroundColor: 'transparent',
+    color: '#2d6a4f',
+    border: '1px solid #2d6a4f',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '0.95rem',
+    fontWeight: '600',
   },
   unsafeNotice: {
     backgroundColor: '#fee2e2',
