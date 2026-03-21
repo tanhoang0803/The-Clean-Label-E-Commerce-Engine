@@ -42,19 +42,22 @@ frontend/src/
   index.js                   ReactDOM.render root.
   App.js                     All React Router v6 <Route> definitions.
   api/apiClient.js           Axios instance. Attaches Bearer token. Handles 401 redirect.
-  redux/store.js             configureStore with userSlice + productSlice.
+  redux/store.js             configureStore with userSlice + productSlice + cartSlice.
   redux/slices/userSlice.js  Auth state: user, token, loading, error. Async thunks for login/register.
   redux/slices/productSlice.js  Product state: products[], selectedProduct. Async thunks.
+  redux/slices/cartSlice.js  Cart state: items[]. Actions: addItem, removeItem, updateQuantity, clearCart. Syncs to localStorage.
   hooks/useProducts.js       Wraps productSlice dispatch. Components import this, not the slice directly.
   hooks/useAuth.js           Wraps userSlice dispatch. Components import this, not the slice directly.
+  hooks/useCart.js           Wraps cartSlice dispatch. Exposes items, totalItems, totalPrice, addToCart, removeFromCart, updateQuantity, clearCart.
   services/productService.js Frontend-only logic (e.g. filter safe-only, format currency).
   pages/ProductListPage.jsx  Calls useProducts hook. Renders ProductCard grid.
-  pages/ProductDetailPage.jsx Fetches single product by ID. Shows IngredientBadge.
+  pages/ProductDetailPage.jsx Fetches single product by ID. Shows IngredientBadge. Dispatches addItem to cartSlice.
+  pages/CartPage.jsx         Basket view: item list with qty controls + remove, order summary panel, proceed to checkout.
   pages/AddProductPage.jsx   Admin form. On submit, dispatches addProduct thunk.
-  pages/CheckoutPage.jsx     Cart display. On confirm, calls POST /orders/checkout.
+  pages/CheckoutPage.jsx     Reads items from cartSlice. On Stripe redirect, calls clearCart().
   components/ProductCard.jsx  Pure presentational component.
   components/IngredientBadge.jsx  Reads is_safe + ai_reason props. No side effects.
-  components/Navbar.jsx      Reads auth state from Redux. Conditionally shows login/logout.
+  components/Navbar.jsx      Reads auth state + cart totalItems from Redux. Shows cart icon with count badge.
 ```
 
 ---
@@ -155,8 +158,13 @@ app.use(express.json());
 ### 3. Repository pattern for all DB access
 All `pool.query(...)` calls live in `repositories/`. Services call repositories. This makes it trivial to mock the DB layer in unit tests and swap the DB engine without touching business logic.
 
-### 4. Redux for global auth + product state
+### 4. Redux for global auth + product + cart state
 User token is stored in Redux `userSlice` and also persisted to `localStorage` by the thunk. On app load, `App.js` reads from `localStorage` to rehydrate the token.
+
+### 6. Cart is client-side only (Redux + localStorage)
+Cart state lives in `cartSlice` and is written to `localStorage` on every mutation. There is no cart table in the database — the items array is sent directly to `POST /api/orders/checkout` at checkout time. This keeps the backend stateless for cart operations.
+
+**Cart is public:** users can add items without being logged in. Auth is only required when hitting `/checkout`.
 
 ### 5. No ORM
 Raw SQL via `pg` is used intentionally. It keeps the query logic explicit and easy to optimize. Do not introduce Sequelize, Prisma, or Knex without discussion.
@@ -177,6 +185,9 @@ Raw SQL via `pg` is used intentionally. It keeps the query logic explicit and ea
 | Add a new page | `frontend/src/pages/` + add `<Route>` in `App.js` |
 | Modify DB schema | Add a new migration file, never edit `001_init.sql` |
 | Seed demo data | `backend/db/seeds/demo.sql` |
+| Modify cart logic (add/remove/qty) | `frontend/src/redux/slices/cartSlice.js` |
+| Modify cart UI | `frontend/src/pages/CartPage.jsx` |
+| Change cart hook interface | `frontend/src/hooks/useCart.js` |
 
 ## Demo Account
 
@@ -256,9 +267,10 @@ Seed file: `backend/db/seeds/demo.sql` — inserts this user + 4 sample products
 | `frontend` | always | `npm install` → `npm run build` (CRA compile check) |
 | `docker` | after backend + frontend pass | `docker compose build --no-cache` |
 | `deploy-backend` | push to `main` only | POSTs to Render deploy hook (if secret set) |
-| `deploy-frontend` | push to `main` only | Vercel CLI deploy (if secrets set) |
 
-**Note:** All Dockerfiles use `npm install` (not `npm ci`) to avoid lockfile cross-platform issues between Windows/Node 25 (local) and Linux/Node 20 (CI/Docker).
+**Note:** All Dockerfiles and CI steps use `npm install` (not `npm ci`) to avoid lockfile cross-platform issues between Windows/Node 25 (local) and Linux/Node 20 (CI/Docker).
+
+**Frontend deploy:** Vercel auto-deploys via its native GitHub integration on every push to `main`. No separate CI job is needed.
 
 ### Tests live in `backend/__tests__/`
 - `health.test.js` — `/health` endpoint smoke test
@@ -299,4 +311,12 @@ Fix: Users must log in again. This is expected behavior.
 
 **React 401 loop**
 Cause: The Axios response interceptor redirects to `/login` on 401, but the login page itself triggers an API call.
-Fix: In `apiClient.js`, skip the redirect if the request URL includes `/auth/`.
+Fix: In `apiClient.js`, skip the redirect if the request URL includes `/auth/` or `/orders/`.
+
+**Cart items lost on checkout**
+Cause: `clearCart()` must be called after Stripe redirect is triggered, not before.
+Fix: In `CheckoutPage.jsx`, call `clearCart()` immediately before `window.location.href = url`.
+
+**npm ci fails in Docker / CI**
+Cause: Lockfile generated on Windows/Node 25 with npm 11 is incompatible with Linux/Node 20 npm 10.
+Fix: Use `npm install` instead of `npm ci` in all Dockerfiles and CI steps.

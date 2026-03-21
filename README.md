@@ -12,6 +12,7 @@ This project demonstrates end-to-end integration of:
 - **AI as a data validation layer** — not just a chatbot, but a gatekeeper
 - **Layered backend architecture** — Controller → Service → Repository
 - **Secure JWT authentication** with role-based access
+- **Shopping basket** with Redux + localStorage persistence
 - **Stripe Checkout** with webhook confirmation
 - **Docker + GitHub Actions CI/CD** with automated test and deploy pipeline
 
@@ -45,8 +46,11 @@ Every product submission triggers an OpenAI GPT-4 call that checks for:
 
 Returns `{ is_safe: boolean, reason: string, flagged_ingredients: string[] }`, stored in the database — never re-computed on reads.
 
+### Shopping Basket
+Persistent cart stored in Redux + `localStorage` (survives page refresh). Users can add products from the detail page, adjust quantities with +/− controls, and remove items from the `/cart` page. The cart icon in the navbar shows a live item count badge. Checkout reads directly from the cart state and clears it after Stripe redirect.
+
 ### Stripe Payment Flow
-Cart → `POST /api/orders/checkout` → Stripe Checkout Session → customer pays on Stripe-hosted page → Stripe webhook confirms → order marked `paid` in PostgreSQL.
+Basket → `/cart` → `POST /api/orders/checkout` → Stripe Checkout Session → customer pays on Stripe-hosted page → Stripe webhook confirms → order marked `paid` in PostgreSQL → cart cleared.
 
 ### JWT Auth + Role Guard
 Register/login returns a signed JWT. Protected routes use `authenticateToken` middleware. Admin-only routes add `requireRole('admin')` on top.
@@ -124,21 +128,24 @@ the_clean_label_e_commerce/
 │       │   ├── index.js
 │       │   └── slices/
 │       │       ├── userSlice.js         # login/register/logout thunks
-│       │       └── productSlice.js      # fetch/add product thunks
+│       │       ├── productSlice.js      # fetch/add product thunks
+│       │       └── cartSlice.js         # add/remove/update/clear + localStorage sync ⭐
 │       ├── hooks/
 │       │   ├── useProducts.js           # Wraps productSlice — components use this
-│       │   └── useAuth.js               # Wraps userSlice — components use this
+│       │   ├── useAuth.js               # Wraps userSlice — components use this
+│       │   └── useCart.js               # Wraps cartSlice — components use this ⭐
 │       ├── services/
 │       │   └── productService.js        # Frontend utilities (filterSafe, formatPrice)
 │       ├── pages/
 │       │   ├── ProductListPage.jsx      # Browse + safe-only toggle
-│       │   ├── ProductDetailPage.jsx    # AI audit result + add to cart
+│       │   ├── ProductDetailPage.jsx    # AI audit result + add to basket
 │       │   ├── AddProductPage.jsx       # Admin product form → shows live AI result
-│       │   └── CheckoutPage.jsx         # Cart summary → Stripe redirect
+│       │   ├── CartPage.jsx             # Basket view: qty controls, remove, summary ⭐
+│       │   └── CheckoutPage.jsx         # Reads from cartSlice → Stripe redirect
 │       └── components/
 │           ├── ProductCard.jsx          # Presentational card with SAFE/UNSAFE badge
 │           ├── IngredientBadge.jsx      # Green/red badge + ai_reason tooltip
-│           └── Navbar.jsx               # Auth-aware nav
+│           └── Navbar.jsx               # Auth-aware nav + cart icon with count badge
 │
 └── .claude/
     ├── skills/
@@ -257,7 +264,16 @@ Response: full product record including AI audit result
 
 ─────────────────────────────────────────────────────
 
-User checks out
+User adds product to basket (ProductDetailPage)
+        │
+        ▼
+cartSlice.addItem() → Redux state + localStorage
+        │
+        ▼
+/cart page → qty controls, remove, order summary
+        │
+        ▼
+"Proceed to checkout" → CheckoutPage reads cartSlice.items
         │
         ▼
 POST /api/orders/checkout  [JWT required]
@@ -266,7 +282,7 @@ POST /api/orders/checkout  [JWT required]
 paymentService.createCheckoutSession(items)
         │
         ▼
-Stripe Checkout Session → frontend redirects to Stripe
+Stripe Checkout Session → cart cleared → frontend redirects to Stripe
         │
         ▼
 Customer pays → Stripe fires POST /api/orders/webhook
@@ -307,19 +323,20 @@ Order status → 'paid' in PostgreSQL
 
 ## CI / CD Pipeline
 
-Every push to `main` triggers a 5-job GitHub Actions pipeline:
+Every push to `main` triggers a 4-job GitHub Actions pipeline:
 
 ```
 push to main
     │
-    ├── [1] backend        → npm ci → psql migrate → Jest (9 tests)
-    ├── [2] frontend       → npm ci → npm run build
+    ├── [1] backend        → npm install → psql migrate → Jest (9 tests)
+    ├── [2] frontend       → npm install → npm run build
     │
     └── on [1]+[2] pass:
          ├── [3] docker         → docker compose build --no-cache
-         ├── [4] deploy-backend → Render deploy hook
-         └── [5] deploy-frontend→ Vercel CLI deploy
+         └── [4] deploy-backend → Render deploy hook
 ```
+
+> Frontend is auto-deployed by Vercel's native GitHub integration on every push to `main` — no separate CI step needed.
 
 ### Running tests locally
 
@@ -432,6 +449,7 @@ Routes define endpoints → Controllers handle req/res → Services hold busines
 - **Order history page** — Let shoppers view past orders and their payment status directly in the UI.
 - **Product search and filtering** — Add full-text search on product name/ingredients and category filters on the product list page.
 - **Email notifications** — Send transactional emails (order confirmation, audit result) via SendGrid or Resend when key events occur.
+- **Saved cart across devices** — Sync cart state to the backend (per user) so the basket persists across different devices and browsers.
 
 ### Security & Reliability
 - **Rate limiting** — Add `express-rate-limit` to auth endpoints to prevent brute-force attacks on login.
